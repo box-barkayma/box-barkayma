@@ -30,7 +30,3 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 nul
-
-# files with secrets
-test-google-auth.js
-START_SERVERS.md
