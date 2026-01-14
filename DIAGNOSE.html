@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tool Rental - Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .info {
+            color: blue;
+        }
+        #results {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Tool Rental - Connection Diagnostics</h1>
+
+    <div class="test-box">
+        <h2>Test 1: Backend Connection</h2>
+        <button onclick="testBackend()">Test Backend Connection</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 2: Login API</h2>
+        <input type="email" id="login-email" placeholder="Email" value="admin@toolrental.com">
+        <input type="password" id="login-password" placeholder="Password" value="admin123">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 3: Create Account</h2>
+        <input type="text" id="signup-name" placeholder="Name" value="Test User">
+        <input type="email" id="signup-email" placeholder="Email" value="test@example.com">
+        <input type="password" id="signup-password" placeholder="Password" value="password123">
+        <button onclick="testSignup()">Test Signup</button>
+        <div id="signup-result"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Test 4: Get Tools</h2>
+        <button onclick="testGetTools()">Test Get Tools</button>
+        <div id="tools-result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            element.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        async function testBackend() {
+            log('backend-result', '⏳ Testing backend connection...', 'info');
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('backend-result',
+                        `✅ SUCCESS!\n\nBackend is running and responding!\n\nStatus: ${response.status}\nMessage: ${data.message}`,
+                        'success'
+                    );
+                } else {
+                    log('backend-result',
+                        `❌ Backend responded with error\n\nStatus: ${response.status}\nData: ${JSON.stringify(data)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                log('backend-result',
+                    `❌ CANNOT CONNECT TO BACKEND!\n\nError: ${error.message}\n\n` +
+                    `This means:\n` +
+                    `1. Backend server is not running\n` +
+                    `2. Backend is on wrong port\n` +
+                    `3. CORS is blocking the connection\n\n` +
+                    `Solution:\n` +
+                    `Make sure you ran: npm run server\n` +
+                    `Check that it says "Port: 5000"`,
+                    'error'
+                );
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            log('login-result', '⏳ Testing login...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.token) {
+                    log('login-result',
+                        `✅ LOGIN SUCCESSFUL!\n\n` +
+                        `Email: ${data.user.email}\n` +
+                        `Name: ${data.user.name}\n` +
+                        `Role: ${data.user.role}\n` +
+                        `Token: ${data.token.substring(0, 50)}...\n\n` +
+                        `This means the login API works!\n` +
+                        `If login fails in the app, it's a frontend issue.`,
+                        'success'
+                    );
+                } else {
+                    log('login-result',
+                        `❌ LOGIN FAILED\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Error: ${data.error || 'Unknown error'}\n\n` +
+                        `Check your email/password!`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                log('login-result',
+                    `❌ CONNECTION ERROR\n\nError: ${error.message}\n\nBackend is not reachable!`,
+                    'error'
+                );
+            }
+        }
+
+        async function testSignup() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            log('signup-result', '⏳ Testing signup...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.token) {
+                    log('signup-result',
+                        `✅ SIGNUP SUCCESSFUL!\n\n` +
+                        `Email: ${data.user.email}\n` +
+                        `Name: ${data.user.name}\n` +
+                        `Role: ${data.user.role}\n` +
+                        `Token: ${data.token.substring(0, 50)}...\n\n` +
+                        `Account created successfully!\n` +
+                        `If signup fails in the app, it's a frontend issue.`,
+                        'success'
+                    );
+                } else {
+                    log('signup-result',
+                        `❌ SIGNUP FAILED\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Error: ${data.error || 'Unknown error'}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                log('signup-result',
+                    `❌ CONNECTION ERROR\n\nError: ${error.message}\n\nBackend is not reachable!`,
+                    'error'
+                );
+            }
+        }
+
+        async function testGetTools() {
+            log('tools-result', '⏳ Getting tools...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/tools`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('tools-result',
+                        `✅ SUCCESS!\n\n` +
+                        `Found ${data.length} tools:\n\n` +
+                        data.map((t, i) =>
+                            `${i+1}. ${t.name} - $${t.price_per_day}/day (${t.category})`
+                        ).join('\n'),
+                        'success'
+                    );
+                } else {
+                    log('tools-result',
+                        `❌ ERROR\n\nStatus: ${response.status}\nData: ${JSON.stringify(data)}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                log('tools-result',
+                    `❌ CONNECTION ERROR\n\nError: ${error.message}`,
+                    'error'
+                );
+            }
+        }
+
+        // Auto-test on load
+        window.onload = () => {
+            testBackend();
+        };
+    </script>
+</body>
+</html>
